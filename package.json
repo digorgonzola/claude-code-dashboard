@@ -1,0 +1,30 @@
+{
+  "name": "claude-code-dashboard",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "description": "A live dashboard for every Claude Code session running on this machine — real session discovery, status you can trust, cost, and PR state. Built on the Organic design system.",
+  "license": "Apache-2.0",
+  "author": "Stefan Hattrell",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/digorgonzola/claude-code-dashboard.git"
+  },
+  "homepage": "https://github.com/digorgonzola/claude-code-dashboard#readme",
+  "bugs": {
+    "url": "https://github.com/digorgonzola/claude-code-dashboard/issues"
+  },
+  "packageManager": "pnpm@11.19.0+sha512.7881f3ed590d472c4a955e2b88b2121791116066dcc88cbca3849ec9b60f1bbaa6d2ccb221fa91da4e1c65bef2bcbe379365aea7ac539c7bf86dedc3a1b22dce",
+  "engines": {
+    "node": ">=22",
+    "pnpm": ">=11"
+  },
+  "scripts": {
+    "preinstall": "npx only-allow pnpm",
+    "prepare": "git config core.hooksPath .githooks || true",
+    "start": "node server.js",
+    "dev": "node --watch server.js",
+    "check": "node scripts/check.mjs",
+    "test": "node scripts/check.mjs"
+  }
+}

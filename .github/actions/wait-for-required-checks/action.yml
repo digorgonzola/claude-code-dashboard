@@ -1,0 +1,50 @@
+name: Wait for required checks
+description: >-
+  Poll the GitHub Checks API for a list of named check-run contexts on the
+  current PR head SHA. Exit success when every named check has resolved to
+  success / skipped / neutral, or has not registered within a grace window
+  (treated as not-applicable, i.e. the source workflow's path filter excluded
+  this PR). Exit failure if any named check completes with failure / cancelled
+  / timed_out / action_required, or if the overall wait exceeds the maximum.
+
+# Vendored into this repo (rather than consumed via `uses: <org>/<repo>@sha`)
+# because the upstream reusable action lives in a private repo in a different
+# GitHub org. Logic is implemented in Node (index.cjs), see README.md.
+
+inputs:
+  required-checks:
+    description: >-
+      Newline-separated list of check-run names (status contexts) to wait for.
+      Match the strings exactly as they appear in the branch ruleset's
+      required_status_checks.
+    required: true
+  grace-seconds:
+    description: >-
+      Seconds to wait for a check to first appear on the head SHA before
+      treating it as not-applicable. Set high enough to absorb GitHub event
+      scheduling latency for the slowest source workflow.
+    required: false
+    default: "90"
+  poll-seconds:
+    description: Seconds between polls of the Checks API.
+    required: false
+    default: "15"
+  max-wait-seconds:
+    description: Hard upper bound on total wait time before giving up.
+    required: false
+    default: "2400"
+  head-sha:
+    description: >-
+      Commit SHA to read check-runs for. Defaults to the PR head SHA from the
+      triggering event; this action only supports pull_request /
+      pull_request_target events.
+    required: false
+    default: ${{ github.event.pull_request.head.sha }}
+  github-token:
+    description: Token used to read check-runs. Defaults to the workflow token.
+    required: false
+    default: ${{ github.token }}
+
+runs:
+  using: node24
+  main: index.cjs

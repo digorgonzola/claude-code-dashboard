@@ -1,0 +1,7 @@
+# CODEOWNERS — required reviewers per path.
+# Effective only with branch protection: "Require review from Code Owners".
+
+# CI/CD and Actions security — any change needs admin review via its own PR.
+/.github/                @digorgonzola
+/.github/workflows/      @digorgonzola
+/CODEOWNERS              @digorgonzola

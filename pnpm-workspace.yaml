@@ -1,0 +1,61 @@
+# pnpm configuration. pnpm 11 reads settings from this file.
+# This is a single-package repo. No `packages` list is needed.
+# This file exists for the supply-chain security settings below.
+#
+# This project ships with zero runtime dependencies; these settings harden any
+# tooling dependency that may be added later (mirrors the roster repo's policy).
+
+# --- Supply-chain security ---
+
+# Never run lifecycle scripts (preinstall/install/postinstall) of dependencies
+# unless a package is set to true below. Every entry must be reviewed and, by
+# default, denied (false).
+allowBuilds: {}
+
+# Fail the install (instead of a warning) if a dependency has a build
+# script that is not reviewed in the map above.
+strictDepBuilds: true
+
+# Refuse to install a version published to the registry less than 7 days ago.
+# Malware pushed to a hijacked package is usually detected and unpublished
+# within days. This window keeps poisoned releases off this machine.
+minimumReleaseAge: 10080 # minutes = 7 days
+
+# Fail resolution when no version in the requested range satisfies
+# minimumReleaseAge. Do not fall back to a non-compliant version silently.
+minimumReleaseAgeStrict: true
+
+# Refuse a version whose trust level is lower than an earlier release.
+# Example: a package that had provenance attestation loses it. That pattern
+# matches an account takeover, so the install fails.
+trustPolicy: no-downgrade
+
+# Re-verify minimumReleaseAge and trustPolicy on every install, even for
+# entries that are already in the lockfile. false is the default. It is
+# explicit here because true would skip the verification pass.
+trustLockfile: false
+
+# Only direct dependencies may resolve from exotic sources such as git
+# repositories or tarball URLs. All transitive dependencies must come from
+# the registry. true is the default. It is explicit here for auditability.
+blockExoticSubdeps: true
+
+# Always save exact versions (no ^ or ~ ranges) for new dependencies.
+savePrefix: ''
+
+# Before `pnpm run` or `pnpm exec`, verify that node_modules matches the
+# lockfile. This prevents runs against tampered or stale dependencies.
+verifyDepsBeforeRun: install
+
+# Verify package integrity checksums against the content-addressable store.
+verifyStoreIntegrity: true
+
+# Enforce the `engines` field in package.json.
+engineStrict: true
+
+# Do not hoist dependencies into the root of node_modules. This removes
+# phantom dependencies: packages can only require what they declare.
+hoistPattern: []
+
+# Note for CI: run `pnpm install --frozen-lockfile` so installs fail when
+# the lockfile does not match package.json.

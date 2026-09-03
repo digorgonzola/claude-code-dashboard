@@ -1,0 +1,41 @@
+name: Workflow Security (zizmor)
+
+# Static security analysis of GitHub Actions workflows.
+# advanced-security: false -> emits annotations and fails the job on findings,
+# instead of SARIF upload to the code-scanning dashboard.
+
+on:
+  pull_request:
+    paths:
+      - ".github/workflows/**"
+      - ".github/actions/**"
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions: {}
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  zizmor:
+    name: Audit workflows
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read # checkout the repo
+      actions: read # zizmor online audits read workflow/action metadata
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Run zizmor
+        uses: zizmorcore/zizmor-action@6fc4b006235f201fdab3722e17240ab420d580e5 # v0.6.1
+        with:
+          version: 1.27.0          # pin the CLI; do not track "latest"
+          advanced-security: false  # annotations + fail CI; no SARIF upload
+          persona: regular

@@ -1,0 +1,15 @@
+node_modules
+*.local
+*.local.json
+.DS_Store
+.idea
+.env
+.env.*
+.mcp.json
+
+# Local design-system source pulled from Claude Design (not part of the app)
+_design_src/
+
+# Scratch / temporary
+scratchpad/
+*.log

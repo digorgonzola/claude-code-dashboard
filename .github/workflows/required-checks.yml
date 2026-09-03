@@ -1,0 +1,88 @@
+name: Required Checks
+
+# Single-context aggregation gate for the branch ruleset.
+#
+# This job ALWAYS runs on every PR and polls the Checks API via the vendored
+# ./.github/actions/wait-for-required-checks action. It passes when each named
+# check has succeeded, was skipped, or never registered within the grace
+# window (a source workflow's paths filter excluded this PR). It fails if any
+# named check failed. Mark THIS job's context ("Required Checks") as required
+# in the ruleset, not the underlying checks. One stable required context lets
+# Renovate automerge on green while new workflows can be added to the list
+# below without touching the ruleset.
+#
+# Trigger is pull_request_target so both this workflow AND the vendored action
+# load from the base branch (main): a PR cannot disable, rename, or neuter the
+# gate by editing them in its own diff. The checkout below pulls the BASE
+# branch (the default ref for pull_request_target), never PR code, and the
+# action runs no PR code. It only reads the Checks API for the PR head SHA
+# taken from the event payload. Do NOT change the checkout to the PR head ref
+# and do NOT add any `run:` of PR-supplied code.
+#
+# Draft handling: ci.yml skips its check job for draft PRs, so "Syntax Check"
+# posts as `skipped`, which the gate action counts as a pass (it must, for
+# genuine not-applicable skips). Marking a PR ready for review does NOT create
+# a new commit, so a stale green context would survive on the head SHA into the
+# ready_for_review-to-merge window. So while the PR is a draft this gate FAILS
+# outright. ready_for_review is in the trigger list, so the gate re-runs and
+# waits for the real checks the moment the PR leaves draft.
+
+on:
+  pull_request_target: # zizmor: ignore[dangerous-triggers] base-branch gate; checkout is base ref, no PR code executed (see header)
+    branches:
+      - main
+    types:
+      - opened
+      - synchronize
+      - reopened
+      - ready_for_review
+
+# github.ref is the BASE ref under pull_request_target, so key concurrency on
+# the PR number. Otherwise every PR shares one group and they cancel each
+# other. The head SHA is in the group too so a run for a stale SHA can never
+# cancel the run for the current SHA; same-SHA duplicates still dedupe.
+concurrency:
+  group: required-checks-${{ github.event.pull_request.number }}-${{ github.event.pull_request.head.sha }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read # checkout the base branch's gate action
+  checks: read # read check-runs on the head SHA
+
+jobs:
+  required-checks:
+    name: Required Checks
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      # While draft, ci.yml skips the real checks. Fail fast rather than let a
+      # `skipped` check be laundered into a green gate. Marking the PR ready
+      # for review re-triggers this workflow (ready_for_review) and the steps
+      # below then wait on the real checks. A failed step stops the job, so
+      # the checkout and wait below never run for a draft.
+      - name: Fail while draft (real checks are skipped for drafts)
+        if: github.event.pull_request.draft == true
+        run: |
+          echo "::error title=Draft PR::Checks are skipped for draft PRs, so the Required Checks gate does not pass while this PR is a draft. Mark the PR 'Ready for review' to run the checks and satisfy the gate."
+          exit 1
+
+      # pull_request_target checks out the BASE branch by default (trusted);
+      # sparse-checkout limits it to just the vendored action. No PR code.
+      - name: Checkout base branch (gate action only)
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          sparse-checkout: .github/actions/wait-for-required-checks
+          sparse-checkout-cone-mode: false
+
+      - name: Wait for required checks
+        uses: ./.github/actions/wait-for-required-checks
+        with:
+          # Exact check-run names (status contexts). Add new gating checks
+          # here as workflows grow.
+          required-checks: |
+            Syntax Check
+          # Absent-after-grace means not-applicable. Matches the action's
+          # 90s default; absorbs GitHub's queue latency before ci.yml
+          # registers its check-run on the head SHA.
+          grace-seconds: "90"

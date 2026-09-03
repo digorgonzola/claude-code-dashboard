@@ -1,0 +1,4 @@
+#!/bin/sh
+# Enabled via `git config core.hooksPath .githooks` (run by the package.json
+# `prepare` script on `pnpm install`). Blocks a commit with a syntax error.
+exec node scripts/check.mjs

@@ -1,0 +1,60 @@
+name: CI
+
+# Runs on EVERY PR with no paths-ignore. The repo is small, the job is fast,
+# and an always-posting check keeps the Required Checks gate simple (the gate
+# never has to treat an absent check as not-applicable for this workflow).
+
+on:
+  pull_request:
+    branches:
+      - main
+    types:
+      - opened
+      - synchronize
+      - reopened
+      - ready_for_review
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    name: Syntax Check
+    runs-on: ubuntu-latest
+    # Skipped for drafts; required-checks.yml fails its gate while the PR is a
+    # draft so this skip cannot be laundered into a green required status.
+    if: github.event_name != 'pull_request' || github.event.pull_request.draft == false
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      # Reads the pinned pnpm version from the packageManager field in
+      # package.json.
+      - name: Install pnpm
+        uses: pnpm/action-setup@0ebf47130e4866e96fce0953f49152a61190b271 # v6.0.9
+
+      # cache: pnpm stores the pnpm store in the GitHub Actions cache, keyed
+      # on pnpm-lock.yaml.
+      - name: Set up Node.js
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: "24"
+          cache: pnpm
+
+      # --frozen-lockfile fails if the lockfile does not match package.json.
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      # Zero-dep parse pass over every first-party JS file (scripts/check.mjs).
+      - name: Syntax check
+        run: pnpm run check

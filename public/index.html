@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Sessions · Claude Code</title>
+  <link rel="stylesheet" href="organic.css">
+  <link rel="stylesheet" href="dashboard.css">
+</head>
+<body>
+  <div class="app">
+    <header class="topbar">
+      <div class="brand">
+        <span class="brand-mark" aria-hidden="true"></span>
+        <span class="brand-name">Sessions</span>
+      </div>
+      <nav class="tabs" id="tabs" aria-label="Views"></nav>
+      <div class="topbar-right" id="topbar-right"></div>
+    </header>
+
+    <main id="view" class="view"><!-- rendered by app.js --></main>
+  </div>
+
+  <div id="drawer-root"></div>
+  <div id="dialog-root"></div>
+
+  <script type="module" src="app.js"></script>
+</body>
+</html>
