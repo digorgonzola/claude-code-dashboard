@@ -21,6 +21,26 @@ node server.js
 
 Then open <http://localhost:4317>. `PORT=... node server.js` to change the port.
 
+### With Docker
+
+```bash
+docker compose up
+# → open http://localhost:4317
+```
+
+Your host `~/.claude` is mounted read-only so the container has real session
+state to show. Override the port or the mounted directory without editing the
+compose file:
+
+```bash
+PORT=4318 docker compose up
+CLAUDE_DIR=/path/to/.claude docker compose up
+```
+
+The read-only dashboard, usage and history all work in the container. The write
+actions (Kill, Reveal folder, Resume in terminal, Open in desktop) act on host
+processes and macOS apps and are not available from inside the container.
+
 ## What it shows
 
 | View | What it is |

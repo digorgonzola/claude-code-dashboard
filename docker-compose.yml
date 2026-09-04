@@ -1,0 +1,28 @@
+# Claude Code Sessions Dashboard.
+#
+#   docker compose up
+#   → open http://localhost:4317
+#
+# The dashboard reads real Claude Code state from your ~/.claude directory
+# (sessions, transcripts, worktrees) — read-only. That directory is mounted
+# into the container below, so the container has real data to show.
+#
+# Override the host port or the mounted directory without editing this file:
+#   PORT=4318 docker compose up
+#   CLAUDE_DIR=/some/other/.claude docker compose up
+#
+# Note: the write actions in the UI (Kill / Reveal folder / Resume in terminal /
+# Open in desktop) operate on host processes and macOS apps and do NOT work from
+# inside the container. The read-only dashboard, usage and history all work.
+services:
+  dashboard:
+    build: .
+    image: claude-code-dashboard
+    container_name: claude-code-dashboard
+    ports:
+      - "${PORT:-4317}:4317"
+    volumes:
+      # Mount the host's Claude Code state read-only. os.homedir() inside the
+      # container is /root, so the app looks in /root/.claude.
+      - "${CLAUDE_DIR:-${HOME}/.claude}:/root/.claude:ro"
+    restart: unless-stopped
