@@ -39,7 +39,16 @@ CLAUDE_DIR=/path/to/.claude docker compose up
 
 The read-only dashboard, usage and history all work in the container. The write
 actions (Kill, Reveal folder, Resume in terminal, Open in desktop) act on host
-processes and macOS apps and are not available from inside the container.
+processes and macOS apps and are not available from inside the container. Live
+session detection also needs host processes, so in Docker sessions show as
+"open" but never "live". To keep those features and still start on reboot, run
+it natively as a service instead (below).
+
+### Run on login (macOS)
+
+To run the dashboard natively and start it after a reboot, install the launchd
+LaunchAgent in [`deploy/`](deploy/README.md). This keeps live detection and the
+write actions working, which Docker cannot.
 
 ## What it shows
 
