@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!--
+  Example launchd LaunchAgent for the Claude Code Sessions Dashboard.
+
+  This runs the dashboard natively on your Mac (not in Docker) so that live
+  session detection and the write actions keep working - both need to see host
+  processes, which a container cannot. The agent starts the dashboard at login
+  and restarts it if it exits, so it survives a reboot.
+
+  The three {{TOKENS}} below are placeholders. Do not load this file directly.
+  See deploy/README.md for the copy-paste install that fills them in and
+  writes the result to ~/Library/LaunchAgents.
+-->
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>com.claude-code-dashboard</string>
+
+    <!-- {{NODE_BIN}} = absolute path to node (find it with: which node)
+         {{REPO_DIR}} = absolute path to this repo checkout -->
+    <key>ProgramArguments</key>
+    <array>
+        <string>{{NODE_BIN}}</string>
+        <string>{{REPO_DIR}}/server.js</string>
+    </array>
+
+    <key>WorkingDirectory</key>
+    <string>{{REPO_DIR}}</string>
+
+    <key>EnvironmentVariables</key>
+    <dict>
+        <!-- The dashboard has no runtime dependencies, but keep the node
+             directory on PATH in case server.js shells out. -->
+        <key>PATH</key>
+        <string>{{NODE_DIR}}:/usr/local/bin:/usr/bin:/bin</string>
+        <!-- Override the listen port here if 4317 is taken. -->
+        <key>PORT</key>
+        <string>4317</string>
+    </dict>
+
+    <!-- Start at login (and therefore after a reboot). -->
+    <key>RunAtLoad</key>
+    <true/>
+
+    <!-- Restart the process if it exits or crashes. -->
+    <key>KeepAlive</key>
+    <true/>
+
+    <!-- Wait at least 10s between restarts so a bad start does not spin. -->
+    <key>ThrottleInterval</key>
+    <integer>10</integer>
+
+    <!-- launchd does not expand ~ or $HOME in these paths, so they are
+         absolute. {{HOME}} = your home directory (echo $HOME). -->
+    <key>StandardOutPath</key>
+    <string>{{HOME}}/Library/Logs/claude-code-dashboard.log</string>
+    <key>StandardErrorPath</key>
+    <string>{{HOME}}/Library/Logs/claude-code-dashboard.log</string>
+</dict>
+</plist>
