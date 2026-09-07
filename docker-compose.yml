@@ -25,4 +25,8 @@ services:
       # Mount the host's Claude Code state read-only. os.homedir() inside the
       # container is /root, so the app looks in /root/.claude.
       - "${CLAUDE_DIR:-${HOME}/.claude}:/root/.claude:ro"
-    restart: unless-stopped
+    # Bring the dashboard back automatically after a host reboot or a Docker
+    # daemon restart. "always" restarts even if the container was previously
+    # stopped; on macOS/Windows, also enable "Start Docker Desktop when you
+    # sign in" so the daemon itself comes up on boot.
+    restart: always
