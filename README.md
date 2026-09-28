@@ -67,13 +67,9 @@ resume** gives you the `claude --resume` command for a terminal.
 > **Note on Open in Claude Desktop.** The desktop keys its sessions by a
 > `local_<uuid>` id (stored under `~/Library/Application Support/Claude/claude-code-sessions/`),
 > not the CLI transcript id — the dashboard resolves that mapping so the link
-> targets the right session. **However**, on packaged (production) desktop
-> builds the jump-to-session route is behind a remote feature gate
-> (`claudeURLHandler: code entry deep link gated off`). While it's gated, the
-> button reliably **foregrounds** Claude Desktop but may not navigate to the
-> exact chat; once the gate is enabled it will, with no change here. Sessions
-> started directly from the CLI (never registered with the desktop) have no
-> `local_` id and can't be targeted — use **Copy resume** for those.
+> opens the right session. Sessions started directly from the CLI (never
+> registered with the desktop) have no `local_` id and can't be targeted — use
+> **Copy resume** for those.
 
 ### Live vs. open
 

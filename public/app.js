@@ -406,8 +406,7 @@ async function loadPrState(pr) {
 
 // Open a session in Claude Desktop via its deep-link scheme. Prefers the
 // desktop's own `local_` id (what the scheme matches on); falls back to the CLI
-// id. Note: on packaged desktop builds the jump-to-session route is behind a
-// feature gate, so this reliably foregrounds the app but may not navigate.
+// id.
 async function openDesktop(id) {
   const s = sessionById(id);
   const deskId = (s && s.desktopId) || id;
@@ -581,7 +580,7 @@ function renderSettings() {
       <div class="setrow"><span class="dot idle"></span><div class="txt"><div class="t">Idle</div><div class="d">A live process with no transcript activity for over 10 minutes.</div></div></div>
       <div class="setrow"><span class="dot open"></span><div class="txt"><div class="t">Open in desktop</div><div class="d">A recently-active session with <b>no running process</b> — resumable, and what Claude Desktop keeps in its sidebar. Approximated as active within the last 7 days (the desktop's archive flag isn't on disk), so the roster matches the sidebar's breadth. These never enter the action queue.</div></div></div>
       <p class="note callout" style="margin-top:12px">${icon('alert', { size: 14 })} Because disk state can't distinguish a permission prompt from a slow tool with certainty, "needs permission" is a best-effort heuristic. Approving or replying happens in the session itself — <b>Open in Claude Desktop</b> brings the app to the front, or <b>Copy resume</b> gives you the <span class="mono">claude --resume</span> command for a terminal.</p>
-      <p class="note" style="margin-top:10px">${icon('external', { size: 13 })} <b>About "Open in Desktop":</b> it uses the desktop's own <span class="mono">claude://code/continue?session=&lt;id&gt;</span> scheme, resolved to the desktop's <span class="mono">local_</span> session id. On <b>packaged</b> desktop builds that jump-to-session route is currently behind a feature gate, so the button reliably foregrounds Claude Desktop but may not land on the exact chat until the gate is enabled — at which point it starts working with no change here. Sessions started directly from the CLI (not via the desktop) have no desktop id and can't be targeted.</p>
+      <p class="note" style="margin-top:10px">${icon('external', { size: 13 })} <b>About "Open in Desktop":</b> it uses the desktop's own <span class="mono">claude://code/continue?session=&lt;id&gt;</span> scheme, resolved to the desktop's <span class="mono">local_</span> session id, so it opens that exact session. Sessions started directly from the CLI (not via the desktop) have no desktop id and can't be targeted.</p>
     </div>
     <div class="panel">
       <h4>Cost model</h4>
