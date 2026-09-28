@@ -23,9 +23,8 @@ name: Required Checks
 # posts as `skipped`. When every run of a check is skipped, the gate action
 # counts the skip as a pass (it must, for genuine not-applicable skips).
 # Marking a PR ready for review does NOT create a new commit, so a stale green
-# context would survive on the head SHA into the
-# ready_for_review-to-merge window. So while the PR is a draft this gate FAILS
-# outright. ready_for_review is in the trigger list, so the gate re-runs the
+# context would survive on the head SHA into the ready_for_review-to-merge
+# window. So while the PR is a draft this gate FAILS outright. ready_for_review is in the trigger list, so the gate re-runs the
 # moment the PR leaves draft. That run sees the draft's `skipped` run on the
 # same SHA, which started before the event (pull_request.updated_at, the
 # action's event-time default). The action holds it through the grace window,
