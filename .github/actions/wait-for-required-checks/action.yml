@@ -8,8 +8,8 @@ description: >-
   / timed_out / action_required, or if the overall wait exceeds the maximum.
 
 # Vendored into this repo (rather than consumed via `uses: <org>/<repo>@sha`)
-# because the upstream reusable action lives in a private repo in a different
-# GitHub org. Logic is implemented in Node (index.cjs), see README.md.
+# so the gate has no cross-repo dependency and needs no Actions allowlist
+# entry. Logic is implemented in Node (index.cjs), see README.md.
 
 inputs:
   required-checks:
@@ -20,9 +20,12 @@ inputs:
     required: true
   grace-seconds:
     description: >-
-      Seconds to wait for a check to first appear on the head SHA before
-      treating it as not-applicable. Set high enough to absorb GitHub event
-      scheduling latency for the slowest source workflow.
+      Seconds of quiet (no start or completion of ANY listed check) to wait
+      for a check to first appear on the head SHA before treating it as
+      not-applicable. The window re-arms on every activity, so a check that
+      only registers after another one completes (a dynamic-matrix job) is
+      still waited for; the same window lets a cancelled run be superseded by
+      its replacement before the cancellation counts as a failure.
     required: false
     default: "90"
   poll-seconds:
@@ -40,6 +43,15 @@ inputs:
       pull_request_target events.
     required: false
     default: ${{ github.event.pull_request.head.sha }}
+  event-time:
+    description: >-
+      ISO 8601 time of the event that triggered the gate. A completed check
+      run that started before it comes from an earlier event on the same SHA
+      (the gate re-runs on, e.g., ready_for_review), so its result only counts
+      after the grace window, giving the re-run time to register. Defaults to
+      the PR's updated_at from the triggering event; empty turns this off.
+    required: false
+    default: ${{ github.event.pull_request.updated_at }}
   github-token:
     description: Token used to read check-runs. Defaults to the workflow token.
     required: false
