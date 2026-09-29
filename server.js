@@ -213,8 +213,7 @@ function handleAction(body, res) {
     // Deep-link into Claude Desktop, the same scheme its own recent-session list
     // uses: claude://code/continue?session=<desktop local_ id>. The desktop keys
     // on the local_ id (not the CLI transcript id), so callers should pass the
-    // resolved desktopId. Firing the link foregrounds the app; whether it also
-    // navigates to the session depends on a desktop feature gate (see README).
+    // resolved desktopId.
     const id = String(body.id || '');
     if (!/^(local_)?[0-9a-fA-F-]{8,64}$/.test(id)) return sendJson(res, 400, { ok: false, error: 'invalid session id' });
     const link = `claude://code/continue?session=${id}&source=desktop_action`;
