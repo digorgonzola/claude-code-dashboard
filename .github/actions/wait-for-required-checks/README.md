@@ -92,8 +92,8 @@ reclassifies every name from the live list.
 A gate that re-runs on the same head SHA (here: `ready_for_review`, which adds
 no commit) finds the earlier event's completed runs already there. On its first
 poll the new run of a listed check may not have registered yet, so the old
-result would decide the gate: for example the draft's `skipped` run would pass
-it before the real run starts. A completed run that started before
+result would decide the gate: for example an earlier green run would pass it
+before the re-run starts. A completed run that started before
 `event-time` is therefore held for the same grace window before its result
 counts. The new run supersedes it as soon as it registers. A check that does
 not re-run on the event keeps its earlier result once grace elapses. It is

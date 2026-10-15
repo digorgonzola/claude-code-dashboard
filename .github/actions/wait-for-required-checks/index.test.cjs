@@ -52,6 +52,11 @@ test("skip alone passes after grace", () => {
   assert.deepEqual(result, { state: "pass", detail: "skipped" });
 });
 
+test("skip from an earlier event passes after grace", () => {
+  const result = classifyLatest(run("skipped", BEFORE_EVENT), GRACE, GRACE, EVENT_MS);
+  assert.deepEqual(result, { state: "pass", detail: "skipped" });
+});
+
 test("skip followed by a real success passes on the success", () => {
   const runs = [run("skipped", AFTER_EVENT), run("success", LATER)];
   assert.equal(latestFor(runs, "Syntax Check").conclusion, "success");

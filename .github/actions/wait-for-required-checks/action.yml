@@ -2,9 +2,10 @@ name: Wait for required checks
 description: >-
   Poll the GitHub Checks API for a list of named check-run contexts on the
   current PR head SHA. Exit success when every named check has resolved to
-  success / skipped / neutral, or has not registered within a grace window
-  (treated as not-applicable, i.e. the source workflow's path filter excluded
-  this PR). Exit failure if any named check completes with failure / cancelled
+  success / neutral, was only ever skipped, or has not registered within a
+  grace window (skipped and absent checks are treated as not-applicable once
+  that window passes, e.g. the source workflow's path filter excluded this
+  PR). Exit failure if any named check completes with failure / cancelled
   / timed_out / action_required, or if the overall wait exceeds the maximum.
 
 # Vendored into this repo (rather than consumed via `uses: <org>/<repo>@sha`)
