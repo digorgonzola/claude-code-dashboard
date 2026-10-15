@@ -1,31 +1,27 @@
 name: CI
 
-# Runs on EVERY PR with no paths-ignore. The repo is small, the job is fast,
-# and an always-posting check keeps the Required Checks gate simple (the gate
-# never has to treat an absent check as not-applicable for this workflow).
+# Runs on EVERY PR, drafts included, with no paths-ignore. The repo is small,
+# the job is fast, and an always-posting check keeps the Required Checks gate
+# simple (the gate never has to treat an absent check as not-applicable for
+# this workflow).
+#
+# Do NOT draft-gate or otherwise skip this job: "Syntax Check" is listed in
+# required-checks.yml, and the gate counts a `skipped` run as a pass (see
+# "Listed checks must run on draft PRs" in the gate action's README).
+# Marking a PR ready creates no new commit, so the run from the draft push
+# already decides the gate; no ready_for_review trigger is needed.
 
 on:
   pull_request:
     branches:
       - main
-    types:
-      - opened
-      - synchronize
-      - reopened
-      - ready_for_review
   push:
     branches:
       - main
   workflow_dispatch:
 
-# Draft and non-draft runs get separate groups. Pushing to a draft PR and then
-# marking it ready queues a `synchronize` run (payload draft == true, job
-# skipped) and a `ready_for_review` run for the same SHA within the same
-# second, in no guaranteed order. With one shared group the draft run could
-# cancel the real run, and the Required Checks gate then fails on `cancelled`.
-# A newer push still cancels the older run in its own group.
 concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}-${{ github.event.pull_request.draft == true && 'draft' || 'ready' }}
+  group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
 permissions:
@@ -35,9 +31,6 @@ jobs:
   check:
     name: Syntax Check
     runs-on: ubuntu-latest
-    # Skipped for drafts; required-checks.yml fails its gate while the PR is a
-    # draft so this skip cannot be laundered into a green required status.
-    if: github.event_name != 'pull_request' || github.event.pull_request.draft == false
     steps:
       - name: Checkout code
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -65,8 +58,10 @@ jobs:
       - name: Syntax check
         run: pnpm run check
 
-      # node:test unit tests (*.test.cjs under .github/). The pattern names
-      # .github/ because node's ** does not enter dot-directories, and it is
-      # quoted so node, not sh, expands it.
+      # Unit tests (*.test.cjs under .github/). `node --test` runs each file
+      # as a child process and fails on a non-zero exit, so the plain-node
+      # test file copied from the central action needs no runner. The
+      # pattern names .github/ because node's ** does not enter
+      # dot-directories, and it is quoted so node, not sh, expands it.
       - name: Unit tests
         run: pnpm test
