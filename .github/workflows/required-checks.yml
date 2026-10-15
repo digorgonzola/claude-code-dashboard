@@ -80,6 +80,7 @@ jobs:
           # here as workflows grow.
           required-checks: |
             Syntax Check
+            Audit workflows
           # Absent-after-grace means not-applicable. Matches the action's
           # 90s default; absorbs GitHub's queue latency before ci.yml
           # registers its check-run on the head SHA.
