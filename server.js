@@ -8,7 +8,6 @@
 //   GET  /api/history          recently-ended sessions
 //   GET  /api/session/:id      transcript tail (+ live PR state if it has a PR)
 //   GET  /api/pr?repo=&number= live PR state via gh
-//   GET  /api/version          git commit this server process started from
 //   POST /api/action           { action:'kill'|'reveal', pid, cwd } — real, guarded
 //
 // All reads are local and read-only. The only mutations are POST /api/action,
@@ -116,6 +115,7 @@ const server = http.createServer(async (req, res) => {
         sessions,
         summary: { ...buildSummary(sessions), costToday: getCostToday(), staleWindowMs: STALE_WINDOW_MS },
         generatedAt: new Date().toISOString(),
+        build: BUILD_INFO,
       });
     }
 
@@ -140,10 +140,6 @@ const server = http.createServer(async (req, res) => {
       const number = url.searchParams.get('number');
       const state = await getPrState(repo, number);
       return sendJson(res, 200, { state });
-    }
-
-    if (p === '/api/version') {
-      return sendJson(res, 200, { build: BUILD_INFO });
     }
 
     if (p === '/api/action' && req.method === 'POST') {
