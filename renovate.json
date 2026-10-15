@@ -18,6 +18,24 @@
     "schedule": ["before 6am on the first day of the month"]
   },
   "osvVulnerabilityAlerts": true,
+  "customManagers": [
+    {
+      "customType": "regex",
+      "description": "Bump the pinned zizmor CLI version wherever a repo pins it: the `version: X.Y.Z # pin the CLI` input to zizmor-action, and the ZIZMOR_VERSION pin in the git pre-commit hook and the Claude PostToolUse hook. All must move together or local and CI gates enforce different rulesets. Copied from the isw-kudos/renovate-config :gha preset, which this repo cannot extend: the hosted Renovate app cannot read that private repo.",
+      "managerFilePatterns": [
+        "/^\\.github/workflows/zizmor\\.ya?ml$/",
+        "/^\\.githooks/pre-commit$/",
+        "/^\\.claude/hooks/zizmor-check\\.sh$/"
+      ],
+      "matchStrings": [
+        "version:\\s*v?(?<currentValue>\\d+\\.\\d+\\.\\d+)\\s*#\\s*pin the CLI",
+        "ZIZMOR_VERSION=(?<currentValue>\\d+\\.\\d+\\.\\d+)"
+      ],
+      "depNameTemplate": "zizmorcore/zizmor",
+      "datasourceTemplate": "github-releases",
+      "extractVersionTemplate": "^v?(?<version>.+)$"
+    }
+  ],
   "vulnerabilityAlerts": {
     "labels": ["security"]
   },
@@ -48,6 +66,27 @@
       "matchManagers": ["github-actions"],
       "matchUpdateTypes": ["minor", "patch", "digest", "pin", "pinDigest"],
       "automerge": true
+    },
+    {
+      "description": "The workflow zizmor CLI `version:` input is owned by the zizmor regex manager above. The built-in github-actions manager reads the same literal as the docker dep ghcr.io/zizmorcore/zizmor and would pin it to a digest or bump it alone, which breaks zizmor-action ('Unknown version', isw-kudos/boards#341). One line, one manager. Mirrors the isw-kudos/renovate-config :gha preset.",
+      "matchManagers": ["github-actions"],
+      "matchPackageNames": ["ghcr.io/zizmorcore/zizmor"],
+      "enabled": false
+    },
+    {
+      "description": "Zizmor: the pinned CLI version and the zizmor-action release must move together in ONE gated PR. The action ships a per-version allowlist and fails with 'Unknown version' when the CLI pin is newer than the SHA-pinned action release supports (isw-kudos/boards#341). ghcr.io/zizmorcore/zizmor is listed so it can never get its own automerging branch if the disable rule above is removed. zizmorcore/zizmor-pre-commit covers a pre-commit framework hook if one is added. separateMajorMinor: false keeps a major on either side in this branch instead of splitting it onto a major-zizmor branch. Mirrors the isw-kudos/renovate-config default preset. This rule MUST stay after the GitHub Actions automerge rule so automerge: false wins.",
+      "groupName": "Zizmor",
+      "matchPackageNames": [
+        "ghcr.io/zizmorcore/zizmor",
+        "zizmorcore/zizmor",
+        "zizmorcore/zizmor-action",
+        "zizmorcore/zizmor-pre-commit"
+      ],
+      "semanticCommitType": "ci",
+      "separateMajorMinor": false,
+      "automerge": false,
+      "dependencyDashboardApproval": true,
+      "dependencyDashboardCategory": "Security tooling"
     }
   ]
 }
