@@ -26,10 +26,13 @@ name: Required Checks
 # context would survive on the head SHA into the ready_for_review-to-merge
 # window. So while the PR is a draft this gate FAILS outright. ready_for_review
 # is in the trigger list, so the gate re-runs the moment the PR leaves draft.
-# That run sees the draft's `skipped` run on the same SHA, which started before
-# the PR's updated_at (passed as the action's event-time). The action holds it
-# through the grace window, so the gate cannot pass on it before ci.yml's real
-# run registers and supersedes it. zizmor.yml runs on drafts and does not
+# That run sees the draft's `skipped` run on the same SHA. When it started
+# before the PR's updated_at (passed as the action's event-time), the action
+# holds it through the grace window, so the gate cannot pass on it before
+# ci.yml's real run registers and supersedes it. When the PR leaves draft
+# within seconds of a push, the skip can start after updated_at, and only the
+# gate's start-up time keeps it from being read before the real run
+# registers. zizmor.yml runs on drafts and does not
 # re-run on ready_for_review, so its draft-time result for the same SHA counts
 # once that grace window ends.
 #
@@ -84,7 +87,15 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           PR_NUMBER: ${{ github.event.pull_request.number }}
         run: |
-          read -r draft updated_at < <(gh api "repos/${GITHUB_REPOSITORY}/pulls/${PR_NUMBER}" --jq '"\(.draft) \(.updated_at)"')
+          # A transient API error would leave the gate red with no new event
+          # to re-run it, so retry before failing closed.
+          state=""
+          for attempt in 1 2 3; do
+            state=$(gh api "repos/${GITHUB_REPOSITORY}/pulls/${PR_NUMBER}" --jq '"\(.draft) \(.updated_at)"') && break
+            state=""
+            sleep $((attempt * 5))
+          done
+          read -r draft updated_at <<< "$state"
           if [[ "$draft" == "true" ]]; then
             echo "::error title=Draft PR::Checks are skipped for draft PRs, so the Required Checks gate does not pass while this PR is a draft. Mark the PR 'Ready for review' to run the checks and satisfy the gate."
             exit 1
