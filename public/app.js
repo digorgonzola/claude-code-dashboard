@@ -603,8 +603,21 @@ function startPolling() {
   pollTimer = setInterval(() => { if (document.visibilityState === 'visible') refresh(); }, prefs.pollMs);
 }
 
-// keep the "synced Ns ago" label ticking even between polls
-setInterval(() => { if (state.data) renderTopRight(); }, 1000);
+// ── footer ───────────────────────────────────────────────────────────────────
+const REPO_URL = 'https://github.com/digorgonzola/claude-code-dashboard';
+function renderFooter() {
+  const build = state.data && state.data.build;
+  if (!build) return;
+  const committed = agoTs(build.committedAt);
+  el('app-footer').innerHTML =
+    `<a class="mono" href="${REPO_URL}/commit/${esc(build.sha)}" target="_blank" rel="noopener" title="${esc(build.subject)}">${esc(build.sha.slice(0, 7))}</a>` +
+    `<span>${esc(build.branch)}</span>` +
+    `<span title="${esc(build.committedAt)}">committed ${committed === 'now' ? 'just now' : committed + ' ago'}</span>` +
+    `<span title="${esc(build.startedAt)}">server up ${agoTs(build.startedAt)}</span>`;
+}
+
+// keep the "synced Ns ago" label and footer ages ticking even between polls
+setInterval(() => { if (state.data) { renderTopRight(); renderFooter(); } }, 1000);
 
 document.addEventListener('keydown', (e) => { if (e.key === 'Escape') { if (state.openSession) closeDrawer(); } });
 

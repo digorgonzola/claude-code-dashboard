@@ -28,6 +28,21 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const PUBLIC = path.join(__dirname, 'public');
 const PORT = process.env.PORT || 4317;
 
+// Read once at startup, not per request. The footer must show the code this
+// process runs, so a pull without a restart shows up as an old commit.
+// Null when there is no .git (for example, the Docker image).
+function readBuildInfo() {
+  const git = (args) => execFileSync('git', args, { cwd: __dirname, encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] }).trim();
+  try {
+    const [sha, subject, committedAt] = git(['log', '-1', '--format=%H%x00%s%x00%cI']).split('\0');
+    const branch = git(['rev-parse', '--abbrev-ref', 'HEAD']);
+    return { sha, subject, committedAt, branch, startedAt: new Date().toISOString() };
+  } catch {
+    return null;
+  }
+}
+const BUILD_INFO = readBuildInfo();
+
 const MIME = {
   '.html': 'text/html; charset=utf-8',
   '.js': 'text/javascript; charset=utf-8',
@@ -100,6 +115,7 @@ const server = http.createServer(async (req, res) => {
         sessions,
         summary: { ...buildSummary(sessions), costToday: getCostToday(), staleWindowMs: STALE_WINDOW_MS },
         generatedAt: new Date().toISOString(),
+        build: BUILD_INFO,
       });
     }
 
