@@ -8,7 +8,18 @@
         "run",
         "dev"
       ],
-      "port": 3000
+      "port": 4317
+    },
+    {
+      "name": "dev-alt-port",
+      "runtimeExecutable": "env",
+      "runtimeArgs": [
+        "PORT=4318",
+        "node",
+        "--watch",
+        "server.js"
+      ],
+      "port": 4318
     }
   ]
 }
