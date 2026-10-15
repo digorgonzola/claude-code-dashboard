@@ -35,7 +35,8 @@ function parseNames(raw) {
 // never supersede an earlier genuine failure of the same check: a workflow
 // that skips its jobs on unrelated events (e.g. a label add) would otherwise
 // launder a red check green. Only when every run of the name is skipped does
-// the skip itself stand (the ordinary draft/path-filter pass).
+// the skip itself stand (the ordinary draft/path-filter pass), and
+// classifyLatest holds it through grace first.
 function latestFor(runs, name) {
   const matches = runs
     .filter((r) => r.name === name)
@@ -78,8 +79,14 @@ function newestActivityMs(runs, names) {
 // re-runs on a PR title edit — and its re-run may not have registered yet at
 // the first poll. Its result, pass or fail, gets the same grace before it
 // counts, so the gate neither passes on a stale green nor fails on a stale
-// red that the edit fixed. Pure — no I/O — so the resolution rules are
-// directly testable.
+// red that the edit fixed.
+// A completed `skipped` run (latestFor only returns one when every run of the
+// name is skipped) is held through grace like absence, whatever its
+// started_at. A draft push marked ready within a second posts its skip after
+// the ready event's updated_at, so the earlier-event hold misses it, and the
+// real run may not have registered at the first poll. A genuine
+// not-applicable skip still passes once grace elapses. Pure — no I/O — so
+// the resolution rules are directly testable.
 function classifyLatest(run, quietSeconds, graceSeconds, eventTimeMs = 0) {
   if (!run) {
     return quietSeconds < graceSeconds
@@ -92,6 +99,12 @@ function classifyLatest(run, quietSeconds, graceSeconds, eventTimeMs = 0) {
   const status = run.status;
   const conclusion = run.conclusion || "";
   if (status === "completed") {
+    if (quietSeconds < graceSeconds && conclusion === "skipped") {
+      return {
+        state: "wait",
+        detail: `skipped (grace ${graceSeconds}s for a non-skipped run)`,
+      };
+    }
     if (quietSeconds < graceSeconds && Date.parse(run.started_at) < eventTimeMs) {
       return {
         state: "wait",

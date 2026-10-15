@@ -26,12 +26,12 @@ name: Required Checks
 # context would survive on the head SHA into the ready_for_review-to-merge
 # window. So while the PR is a draft this gate FAILS outright. ready_for_review
 # is in the trigger list, so the gate re-runs the moment the PR leaves draft.
-# That run sees the draft's `skipped` run on the same SHA, which started before
-# the event (pull_request.updated_at, the action's event-time default). The
-# action holds it through the grace window, so the gate cannot pass on it
-# before ci.yml's real run registers and supersedes it. zizmor.yml runs on
-# drafts and does not re-run on ready_for_review, so its draft-time result
-# for the same SHA counts once that grace window ends.
+# That run sees the draft's `skipped` run on the same SHA. The action holds a
+# skip through the grace window whatever its started_at (a push marked ready
+# within a second can post the skip after the event's updated_at), so the gate
+# cannot pass on it before ci.yml's real run registers and supersedes it.
+# zizmor.yml runs on drafts and does not re-run on ready_for_review, so its
+# draft-time result for the same SHA counts once that grace window ends.
 
 on:
   pull_request_target: # zizmor: ignore[dangerous-triggers] base-branch gate; action loaded via $/ from base commit, no checkout, no PR code executed (see header)

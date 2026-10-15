@@ -25,7 +25,8 @@ inputs:
       not-applicable. The window re-arms on every activity, so a check that
       only registers after another one completes (a dynamic-matrix job) is
       still waited for; the same window lets a cancelled run be superseded by
-      its replacement before the cancellation counts as a failure.
+      its replacement before the cancellation counts as a failure, and holds
+      a completed `skipped` run until a non-skipped run can register.
     required: false
     default: "90"
   poll-seconds:
