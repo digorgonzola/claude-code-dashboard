@@ -29,7 +29,9 @@ name: Required Checks
 # That run sees the draft's `skipped` run on the same SHA, which started before
 # the event (pull_request.updated_at, the action's event-time default). The
 # action holds it through the grace window, so the gate cannot pass on it
-# before ci.yml's real run registers and supersedes it.
+# before ci.yml's real run registers and supersedes it. zizmor.yml runs on
+# drafts and does not re-run on ready_for_review, so its draft-time result
+# for the same SHA counts once that grace window ends.
 
 on:
   pull_request_target: # zizmor: ignore[dangerous-triggers] base-branch gate; action loaded via $/ from base commit, no checkout, no PR code executed (see header)
@@ -82,6 +84,7 @@ jobs:
             Syntax Check
             Audit workflows
           # Absent-after-grace means not-applicable. Matches the action's
-          # 90s default; absorbs GitHub's queue latency before ci.yml
-          # registers its check-run on the head SHA.
+          # 90s default; absorbs GitHub's queue latency before ci.yml and
+          # zizmor.yml register their check-runs on the head SHA. zizmor.yml
+          # is path-filtered to .github/**, so on most PRs it never registers.
           grace-seconds: "90"
