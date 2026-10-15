@@ -21,20 +21,19 @@ name: Required Checks
 #
 # Draft handling: ci.yml skips its check job for draft PRs, so "Syntax Check"
 # posts as `skipped`. When every run of a check is skipped, the gate action
-# counts the skip as a pass (it must, for genuine not-applicable skips).
+# counts the skip as a pass once its grace window passes (it must, for genuine
+# not-applicable skips).
 # Marking a PR ready for review does NOT create a new commit, so a stale green
 # context would survive on the head SHA into the ready_for_review-to-merge
 # window. So while the PR is a draft this gate FAILS outright. ready_for_review
 # is in the trigger list, so the gate re-runs the moment the PR leaves draft.
-# That run sees the draft's `skipped` run on the same SHA. When it started
-# before the PR's updated_at (passed as the action's event-time), the action
-# holds it through the grace window, so the gate cannot pass on it before
-# ci.yml's real run registers and supersedes it. When the PR leaves draft
-# within seconds of a push, the skip can start after updated_at, and only the
-# gate's start-up time keeps it from being read before the real run
-# registers. zizmor.yml runs on drafts and does not
-# re-run on ready_for_review, so its draft-time result for the same SHA counts
-# once that grace window ends.
+# That run sees the draft's `skipped` run on the same SHA. The action holds a
+# skip through the grace window whatever its started_at (a push marked ready
+# within a second can post the skip after the PR's updated_at, the action's
+# event-time), so the gate cannot pass on it before ci.yml's real run
+# registers and supersedes it. zizmor.yml runs on drafts and does not re-run
+# on ready_for_review, so its draft-time result for the same SHA counts once
+# that grace window ends.
 #
 # The draft flag and updated_at come from the LIVE pull request, not the event
 # payload. A push to a draft followed by "ready for review" seconds later

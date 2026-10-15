@@ -81,7 +81,8 @@ For each required check, the action picks the most recent matching check-run
 (by `started_at`) **that has a real result**. A `skipped` run never supersedes
 an earlier genuine result of the same check (a workflow that skips its jobs on
 unrelated events must not launder a red check green). Only when every run of a
-name is skipped does the skip stand. Grace is measured as *quiet time*: seconds
+name is skipped does the skip stand, and then only after the grace window (see
+below). Grace is measured as *quiet time*: seconds
 since the newest start or completion of any listed check (or since the gate
 started, whichever is later). A check that registers late, such as a
 dynamic-matrix job that cannot exist until its parent completes, re-arms the
@@ -91,18 +92,26 @@ reclassifies every name from the live list.
 A gate that re-runs on the same head SHA (here: `ready_for_review`, which adds
 no commit) finds the earlier event's completed runs already there. On its first
 poll the new run of a listed check may not have registered yet, so the old
-result would decide the gate: for example the draft's `skipped` run would pass
-it before the real run starts. A completed run that started before
+result would decide the gate: for example an earlier green run would pass it
+before the re-run starts. A completed run that started before
 `event-time` is therefore held for the same grace window before its result
 counts. The new run supersedes it as soon as it registers. A check that does
 not re-run on the event keeps its earlier result once grace elapses. It is
 delayed, never dropped.
+
+A completed `skipped` run is held for the grace window whatever its
+`started_at`, like an absent check. If a draft PR gets a push and is marked
+ready within about a second, the draft's skip can start after `event-time`, so
+the hold above does not catch it. The real run may not have registered at the
+gate's first poll. Without this hold the gate could pass on the skip. A
+genuine not-applicable skip still passes once grace elapses.
 
 | Latest real check state | Action |
 |---|---|
 | Absent, quiet < `grace-seconds` | keep waiting |
 | Absent, quiet ≥ `grace-seconds` | not-applicable → success (source `paths` excluded this PR) |
 | `queued` / `in_progress` / `pending` / `waiting` | keep waiting |
+| `completed` + `skipped` (every run of the name), quiet < `grace-seconds` | keep waiting (a non-skipped run may not have registered yet) |
 | `completed`, started before `event-time`, quiet < `grace-seconds` | keep waiting (the run is from an earlier event on this SHA and its re-run may not have registered yet) |
 | `completed` + `success` / `skipped` / `neutral` | success |
 | `completed` + `cancelled`, quiet < `grace-seconds` | keep waiting (a superseding run usually follows a cancellation) |
@@ -115,4 +124,8 @@ delayed, never dropped.
 `index.cjs` exports its pure helpers (`parseNames`, `latestFor`,
 `classifyLatest`, `newestActivityMs`, `nextLink`) and only runs the poll loop when invoked
 directly, so the resolution rules can be unit-tested with plain `node` — no
-runner required.
+runner required:
+
+```bash
+node --test .github/actions/wait-for-required-checks/index.test.cjs
+```
