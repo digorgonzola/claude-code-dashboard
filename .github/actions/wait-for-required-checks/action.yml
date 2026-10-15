@@ -2,22 +2,23 @@ name: Wait for required checks
 description: >-
   Poll the GitHub Checks API for a list of named check-run contexts on the
   current PR head SHA. Exit success when every named check has resolved to
-  success / neutral, was only ever skipped, or has not registered within a
-  grace window (skipped and absent checks are treated as not-applicable once
-  that window passes, e.g. the source workflow's path filter excluded this
-  PR). Exit failure if any named check completes with failure / cancelled
-  / timed_out / action_required, or if the overall wait exceeds the maximum.
+  success / skipped / neutral, or has not registered within a grace window
+  (treated as not-applicable, i.e. the source workflow's path filter excluded
+  this PR). Exit failure if any named check completes with failure /
+  cancelled / timed_out / action_required, or if the overall wait exceeds
+  the maximum.
 
-# Vendored into this repo (rather than consumed via `uses: <org>/<repo>@sha`)
-# so the gate has no cross-repo dependency and needs no Actions allowlist
-# entry. Logic is implemented in Node (index.cjs), see README.md.
+# Logic is implemented in Node (index.cjs, zero npm dependencies) — see
+# README.md. The pure helpers are exported for unit testing with plain node.
 
 inputs:
   required-checks:
     description: >-
-      Newline-separated list of check-run names (status contexts) to wait for.
-      Match the strings exactly as they appear in the branch ruleset's
-      required_status_checks.
+      Newline-separated list of check-run names (status contexts) to wait
+      for. Match the strings exactly as they appear in the branch ruleset's
+      required_status_checks. For reusable workflows GitHub registers the
+      composite "<caller-job-name> / <called-job-name>" form -- pass that
+      form here.
     required: true
   grace-seconds:
     description: >-
@@ -26,8 +27,7 @@ inputs:
       not-applicable. The window re-arms on every activity, so a check that
       only registers after another one completes (a dynamic-matrix job) is
       still waited for; the same window lets a cancelled run be superseded by
-      its replacement before the cancellation counts as a failure, and holds
-      a completed `skipped` run until a non-skipped run can register.
+      its replacement before the cancellation counts as a failure.
     required: false
     default: "90"
   poll-seconds:
@@ -49,7 +49,7 @@ inputs:
     description: >-
       ISO 8601 time of the event that triggered the gate. A completed check
       run that started before it comes from an earlier event on the same SHA
-      (the gate re-runs on, e.g., ready_for_review), so its result only counts
+      (the gate re-runs on, e.g., a PR title edit), so its result only counts
       after the grace window, giving the re-run time to register. Defaults to
       the PR's updated_at from the triggering event; empty turns this off.
     required: false
