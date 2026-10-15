@@ -1,4 +1,7 @@
 #!/bin/sh
 # Enabled via `git config core.hooksPath .githooks` (run by the package.json
-# `prepare` script on `pnpm install`). Blocks a commit with a syntax error.
-exec node scripts/check.mjs
+# `prepare` script on `pnpm install`). Blocks a commit with a syntax error or
+# a failing unit test.
+node scripts/check.mjs || exit 1
+# Same glob as the package.json `test` script; keep the two in sync.
+exec node --test '.github/**/*.test.cjs'
