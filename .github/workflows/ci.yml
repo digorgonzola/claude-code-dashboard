@@ -64,3 +64,8 @@ jobs:
       # Zero-dep parse pass over every first-party JS file (scripts/check.mjs).
       - name: Syntax check
         run: pnpm run check
+
+      # node:test unit tests (*.test.cjs under .github/). The glob is quoted so
+      # node expands it; a bare ** would skip the .github dot-directory.
+      - name: Unit tests
+        run: pnpm test

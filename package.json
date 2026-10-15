@@ -25,6 +25,6 @@
     "start": "node server.js",
     "dev": "node --watch server.js",
     "check": "node scripts/check.mjs",
-    "test": "node scripts/check.mjs"
+    "test": "node --test '.github/**/*.test.cjs'"
   }
 }
