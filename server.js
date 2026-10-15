@@ -218,7 +218,7 @@ function handleAction(body, res) {
     if (!/^(local_)?[0-9a-fA-F-]{8,64}$/.test(id)) return sendJson(res, 400, { ok: false, error: 'invalid session id' });
     const link = `claude://code/continue?session=${id}&source=desktop_action`;
     execFile('open', [link], (err) => {
-      // Guarantee the app at least comes forward even if the URL is a no-op.
+      // If the scheme handler fails, at least bring the app forward.
       if (err) execFile('open', ['-a', 'Claude'], () => {});
     });
     return sendJson(res, 200, { ok: true, action, link });
