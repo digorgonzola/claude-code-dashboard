@@ -3,4 +3,5 @@
 # `prepare` script on `pnpm install`). Blocks a commit with a syntax error or
 # a failing unit test.
 node scripts/check.mjs || exit 1
+# Same glob as the package.json `test` script; keep the two in sync.
 exec node --test '.github/**/*.test.cjs'

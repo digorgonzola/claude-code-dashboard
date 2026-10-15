@@ -65,7 +65,8 @@ jobs:
       - name: Syntax check
         run: pnpm run check
 
-      # node:test unit tests (*.test.cjs under .github/). The glob is quoted so
-      # node expands it; a bare ** would skip the .github dot-directory.
+      # node:test unit tests (*.test.cjs under .github/). The pattern names
+      # .github/ because node's ** does not enter dot-directories, and it is
+      # quoted so node, not sh, expands it.
       - name: Unit tests
         run: pnpm test
