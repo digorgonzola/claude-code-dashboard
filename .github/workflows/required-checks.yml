@@ -26,12 +26,22 @@ name: Required Checks
 # context would survive on the head SHA into the ready_for_review-to-merge
 # window. So while the PR is a draft this gate FAILS outright. ready_for_review
 # is in the trigger list, so the gate re-runs the moment the PR leaves draft.
-# That run sees the draft's `skipped` run on the same SHA, which started before
-# the event (pull_request.updated_at, the action's event-time default). The
-# action holds it through the grace window, so the gate cannot pass on it
-# before ci.yml's real run registers and supersedes it. zizmor.yml runs on
-# drafts and does not re-run on ready_for_review, so its draft-time result
-# for the same SHA counts once that grace window ends.
+# That run sees the draft's `skipped` run on the same SHA. When it started
+# before the PR's updated_at (passed as the action's event-time), the action
+# holds it through the grace window, so the gate cannot pass on it before
+# ci.yml's real run registers and supersedes it. When the PR leaves draft
+# within seconds of a push, the skip can start after updated_at, and only the
+# gate's start-up time keeps it from being read before the real run
+# registers. zizmor.yml runs on drafts and does not
+# re-run on ready_for_review, so its draft-time result for the same SHA counts
+# once that grace window ends.
+#
+# The draft flag and updated_at come from the LIVE pull request, not the event
+# payload. A push to a draft followed by "ready for review" seconds later
+# queues a synchronize run (payload draft: true) and a ready_for_review run
+# (payload draft: false) for one SHA, in no fixed order, and the concurrency
+# group below keeps only the one queued last. Reading the live PR makes that
+# survivor decide on the PR as it is now, whichever event started it.
 
 on:
   pull_request_target: # zizmor: ignore[dangerous-triggers] base-branch gate; action loaded via $/ from base commit, no checkout, no PR code executed (see header)
@@ -47,6 +57,9 @@ on:
 # the PR number. Otherwise every PR shares one group and they cancel each
 # other. The head SHA is in the group too so a run for a stale SHA can never
 # cancel the run for the current SHA; same-SHA duplicates still dedupe.
+# Keep one group per SHA (no draft flag in it): the branch ruleset reads only
+# the newest "Required Checks" run on the SHA, and the run that survives the
+# group is always the newest, so no stale draft-time failure can decide.
 concurrency:
   group: required-checks-${{ github.event.pull_request.number }}-${{ github.event.pull_request.head.sha }}
   cancel-in-progress: true
@@ -54,6 +67,7 @@ concurrency:
 permissions:
   contents: read # fetch the `$/` gate action from this repo
   checks: read # read check-runs on the head SHA
+  pull-requests: read # read the live draft state and updated_at of the PR
 
 jobs:
   required-checks:
@@ -65,12 +79,32 @@ jobs:
       # `skipped` check be laundered into a green gate. Marking the PR ready
       # for review re-triggers this workflow (ready_for_review) and the steps
       # below then wait on the real checks. A failed step stops the job, so
-      # the wait below never runs for a draft.
+      # the wait below never runs for a draft. The state is read live (see
+      # header); anything but an exact draft flag and timestamp fails closed.
       - name: Fail while draft (real checks are skipped for drafts)
-        if: github.event.pull_request.draft == true
+        id: pr
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
         run: |
-          echo "::error title=Draft PR::Checks are skipped for draft PRs, so the Required Checks gate does not pass while this PR is a draft. Mark the PR 'Ready for review' to run the checks and satisfy the gate."
-          exit 1
+          # A transient API error would leave the gate red with no new event
+          # to re-run it, so retry before failing closed.
+          state=""
+          for attempt in 1 2 3; do
+            state=$(gh api "repos/${GITHUB_REPOSITORY}/pulls/${PR_NUMBER}" --jq '"\(.draft) \(.updated_at)"') && break
+            state=""
+            sleep $((attempt * 5))
+          done
+          read -r draft updated_at <<< "$state"
+          if [[ "$draft" == "true" ]]; then
+            echo "::error title=Draft PR::Checks are skipped for draft PRs, so the Required Checks gate does not pass while this PR is a draft. Mark the PR 'Ready for review' to run the checks and satisfy the gate."
+            exit 1
+          fi
+          if [[ "$draft" != "false" || ! "$updated_at" =~ ^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z$ ]]; then
+            echo "::error title=Bad PR state::Could not read the draft state of PR ${PR_NUMBER}."
+            exit 1
+          fi
+          echo "updated-at=${updated_at}" >> "$GITHUB_OUTPUT"
 
       # `$/` loads the action from the commit running this workflow, which
       # under pull_request_target is the BASE branch (trusted). No checkout,
@@ -88,3 +122,4 @@ jobs:
           # zizmor.yml register their check-runs on the head SHA. zizmor.yml
           # is path-filtered to .github/**, so on most PRs it never registers.
           grace-seconds: "90"
+          event-time: ${{ steps.pr.outputs.updated-at }}
