@@ -8,6 +8,7 @@
 //   GET  /api/history          recently-ended sessions
 //   GET  /api/session/:id      transcript tail (+ live PR state if it has a PR)
 //   GET  /api/pr?repo=&number= live PR state via gh
+//   GET  /api/version          git commit this server process started from
 //   POST /api/action           { action:'kill'|'reveal', pid, cwd } — real, guarded
 //
 // All reads are local and read-only. The only mutations are POST /api/action,
@@ -27,6 +28,21 @@ import { getPrState } from './lib/git.js';
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const PUBLIC = path.join(__dirname, 'public');
 const PORT = process.env.PORT || 4317;
+
+// Read once at startup, not per request. The footer must show the code this
+// process runs, so a pull without a restart shows up as an old commit.
+// Null when there is no .git (for example, the Docker image).
+function readBuildInfo() {
+  const git = (args) => execFileSync('git', args, { cwd: __dirname, encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] }).trim();
+  try {
+    const [sha, subject, committedAt] = git(['log', '-1', '--format=%H%x00%s%x00%cI']).split('\0');
+    const branch = git(['rev-parse', '--abbrev-ref', 'HEAD']);
+    return { sha, subject, committedAt, branch, startedAt: new Date().toISOString() };
+  } catch {
+    return null;
+  }
+}
+const BUILD_INFO = readBuildInfo();
 
 const MIME = {
   '.html': 'text/html; charset=utf-8',
@@ -124,6 +140,10 @@ const server = http.createServer(async (req, res) => {
       const number = url.searchParams.get('number');
       const state = await getPrState(repo, number);
       return sendJson(res, 200, { state });
+    }
+
+    if (p === '/api/version') {
+      return sendJson(res, 200, { build: BUILD_INFO });
     }
 
     if (p === '/api/action' && req.method === 'POST') {

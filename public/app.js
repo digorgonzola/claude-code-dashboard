@@ -608,10 +608,24 @@ setInterval(() => { if (state.data) renderTopRight(); }, 1000);
 
 document.addEventListener('keydown', (e) => { if (e.key === 'Escape') { if (state.openSession) closeDrawer(); } });
 
+// ── footer ───────────────────────────────────────────────────────────────────
+const REPO_URL = 'https://github.com/digorgonzola/claude-code-dashboard';
+async function renderFooter() {
+  let build = null;
+  try { ({ build } = await api('/api/version')); } catch {}
+  if (!build) return;
+  el('app-footer').innerHTML =
+    `<a class="mono" href="${REPO_URL}/commit/${esc(build.sha)}" target="_blank" rel="noopener" title="${esc(build.subject)}">${esc(build.sha.slice(0, 7))}</a>` +
+    `<span>${esc(build.branch)}</span>` +
+    `<span title="${esc(build.committedAt)}">committed ${agoTs(build.committedAt)} ago</span>` +
+    `<span title="${esc(build.startedAt)}">server up ${agoTs(build.startedAt)}</span>`;
+}
+
 // ── boot ─────────────────────────────────────────────────────────────────────
 async function boot() {
   renderTabs();
   render();
+  renderFooter();
   await refresh(true);
   startPolling();
 }
