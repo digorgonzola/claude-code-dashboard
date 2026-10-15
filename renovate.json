@@ -23,6 +23,11 @@
   },
   "packageRules": [
     {
+      "description": "Skip minimumReleaseAge for pin and lockFileMaintenance updates. Pins (renovatebot/renovate#40288) and lock file maintenance carry no release timestamp, so under timestamp-required they stay pending forever. The preset's lockFileMaintenance opt-out never matches: it filters on datasource, which lock file maintenance lacks. pnpm's minimumReleaseAge still gates the regenerated lockfile.",
+      "matchUpdateTypes": ["pin", "lockFileMaintenance"],
+      "minimumReleaseAge": null
+    },
+    {
       "description": "GitHub Actions updates use the ci: commit type, matching repo convention",
       "matchManagers": ["github-actions"],
       "semanticCommitType": "ci"
