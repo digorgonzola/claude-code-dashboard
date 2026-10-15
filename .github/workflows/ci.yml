@@ -18,8 +18,14 @@ on:
       - main
   workflow_dispatch:
 
+# Draft and non-draft runs get separate groups. Pushing to a draft PR and then
+# marking it ready queues a `synchronize` run (payload draft == true, job
+# skipped) and a `ready_for_review` run for the same SHA within the same
+# second, in no guaranteed order. With one shared group the draft run could
+# cancel the real run, and the Required Checks gate then fails on `cancelled`.
+# A newer push still cancels the older run in its own group.
 concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
+  group: ${{ github.workflow }}-${{ github.ref }}-${{ github.event.pull_request.draft == true && 'draft' || 'ready' }}
   cancel-in-progress: true
 
 permissions:
