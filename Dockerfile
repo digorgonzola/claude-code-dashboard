@@ -3,7 +3,7 @@
 # The app has zero runtime dependencies (Node built-ins only), so there is no
 # install step: we just copy the source and run it. Node 22+ is required (see
 # package.json "engines").
-FROM node:24.21.0-alpine@sha256:ebfe2f90462722a7a4de65e91990e97fe0d401c70e0e762c5b53302f905ec1c1
+FROM node:24.22.2-alpine@sha256:a34ab6d7f6f4813f4d0c5469d74685604b962fbdbf5793a7bc7b4998ecb867c8
 
 WORKDIR /app
 
